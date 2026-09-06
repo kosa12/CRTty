@@ -247,6 +247,16 @@ macro_rules! load {
 
 pub fn ensure_loaded() {
     INIT.call_once(|| unsafe {
+         // On Debian-based distros, GLFW loads GL libs via dlopen(RTLD_LOCAL),
+        // hiding their symbols from dlsym(RTLD_DEFAULT). Promoting them to
+        // RTLD_GLOBAL here ensures all subsequent lookups succeed.
+        for lib in [
+            b"libGL.so.1\0".as_ptr(),
+            b"libGLX.so.0\0".as_ptr(),
+            b"libGLdispatch.so.0\0".as_ptr(),
+        ] {
+            libc::dlopen(lib as *const libc::c_char, libc::RTLD_LAZY | libc::RTLD_GLOBAL);
+        }
         load!(glGenTextures);
         load!(glDeleteTextures);
         load!(glBindTexture);
